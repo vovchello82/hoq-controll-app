@@ -18,10 +18,35 @@ import (
 
 type TaskWatcher interface {
 	WatchTasks(labelMap map[string]string, feedchan chan<- task.Task)
+	WatchJobStatus()
 }
 type TaskWatcherService struct {
 }
 
+func (t *TaskWatcherService) WatchJobStatus() {
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		panic(err.Error())
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		panic(err.Error())
+	}
+	jobs, err := clientset.BatchV1().CronJobs("default").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		panic(err.Error())
+	}
+	log.Printf("There are %d jobs in the cluster\n", len(jobs.Items))
+
+	for _, j := range jobs.Items {
+
+		log.Printf("Job %s with LastSuccessfulTime %s time", j.Name, j.Status.LastSuccessfulTime)
+		log.Printf("Job %s with LastScheduleTime %s time", j.Name, j.Status.LastScheduleTime)
+
+	}
+}
 func (t *TaskWatcherService) WatchTasks(labelMap map[string]string, feedchan chan<- task.Task) {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
