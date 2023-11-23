@@ -7,9 +7,9 @@ import (
 )
 
 func main() {
+
 	log.Println("starting the control app for house of apps")
 
-	appWatcher := watcher.NewTaskPopulator(&store.InMemStore{}, &watcher.TaskWatcherService{})
-
-	appWatcher.StartWatching()
+	watcher := watcher.NewTaskPopulator(&store.InMemStore{}, &watcher.TaskWatcherService{})
+	watcher.StartWatching()
 }

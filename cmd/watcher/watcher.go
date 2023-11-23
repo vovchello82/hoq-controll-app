@@ -5,6 +5,7 @@ import (
 	"hoa-control-app/cmd/store"
 	"hoa-control-app/cmd/task"
 	"log"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,17 +35,22 @@ func (t *TaskWatcherService) WatchJobStatus() {
 	if err != nil {
 		panic(err.Error())
 	}
-	jobs, err := clientset.BatchV1().CronJobs("default").List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-	log.Printf("There are %d jobs in the cluster\n", len(jobs.Items))
 
-	for _, j := range jobs.Items {
+	for {
+		jobs, err := clientset.BatchV1().CronJobs("default").List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			panic(err.Error())
+		}
+		log.Printf("There are %d jobs in the cluster\n", len(jobs.Items))
 
-		log.Printf("Job %s with LastSuccessfulTime %s time", j.Name, j.Status.LastSuccessfulTime)
-		log.Printf("Job %s with LastScheduleTime %s time", j.Name, j.Status.LastScheduleTime)
+		for _, j := range jobs.Items {
 
+			log.Printf("Job %s with LastSuccessfulTime %s time", j.Name, j.Status.LastSuccessfulTime)
+			log.Printf("Job %s with LastScheduleTime %s time", j.Name, j.Status.LastScheduleTime)
+
+		}
+
+		time.Sleep(20 * time.Second)
 	}
 }
 func (t *TaskWatcherService) WatchTasks(labelMap map[string]string, feedchan chan<- task.Task) {
@@ -121,6 +127,7 @@ func (tp *TaskPopulatorService) StartWatching() {
 	labels["app"] = "task1"
 
 	go tp.TaskWatcher.WatchTasks(labels, taskUpdatesChan)
+	go tp.TaskWatcher.WatchJobStatus()
 
 	for v := range taskUpdatesChan {
 		log.Default().Printf("coming update for %s", v.Name)
