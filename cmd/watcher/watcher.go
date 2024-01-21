@@ -41,13 +41,20 @@ func (t *TaskWatcherService) WatchJobStatus() {
 		if err != nil {
 			panic(err.Error())
 		}
-		log.Printf("There are %d jobs in the cluster\n", len(jobs.Items))
+		if jobs == nil {
+			continue
+		}
 
 		for _, j := range jobs.Items {
-
-			log.Printf("Job %s with LastSuccessfulTime %s time", j.Name, j.Status.LastSuccessfulTime)
-			log.Printf("Job %s with LastScheduleTime %s time", j.Name, j.Status.LastScheduleTime)
-
+			timeScheduled := j.Status.LastScheduleTime
+			timeLastSuccess := j.Status.LastSuccessfulTime
+			if timeScheduled != nil &&
+				timeLastSuccess != nil &&
+				timeScheduled.Time.Before(timeLastSuccess.Time) {
+				log.Printf("Job %s with was successeful", j.Name)
+			} else {
+				log.Printf("Job %s not yet successeful", j.Name)
+			}
 		}
 
 		time.Sleep(20 * time.Second)
@@ -84,11 +91,10 @@ func (t *TaskWatcherService) WatchTasks(labelMap map[string]string, feedchan cha
 		switch event.Type {
 		case watch.Modified:
 			log.Default().Printf("new Modified event pod %s", item.Name)
-
 			feedchan <- task.Task{
 				Name:   item.Name,
 				Labels: item.Labels,
-				Status: "OPEN",
+				Status: "STARTED",
 			}
 		case watch.Bookmark:
 		case watch.Error:
@@ -96,8 +102,7 @@ func (t *TaskWatcherService) WatchTasks(labelMap map[string]string, feedchan cha
 		case watch.Deleted:
 			log.Default().Printf("new Deleted event pod %s", item.Name)
 		case watch.Added:
-			log.Default().Printf("new Added event pod %s", item.Name)
-
+			log.Default().Printf("new Added event pod %s time %s", item.Name, item.CreationTimestamp)
 			feedchan <- task.Task{
 				Name:   item.Name,
 				Labels: item.Labels,
@@ -124,13 +129,18 @@ func (tp *TaskPopulatorService) StartWatching() {
 	taskUpdatesChan := make(chan task.Task)
 	labels := make(map[string]string)
 
-	labels["app"] = "task1"
+	labels["app"] = "task-open"
+	labels["type"] = "test"
 
 	go tp.TaskWatcher.WatchTasks(labels, taskUpdatesChan)
 	go tp.TaskWatcher.WatchJobStatus()
 
 	for v := range taskUpdatesChan {
-		log.Default().Printf("coming update for %s", v.Name)
-		//TODO store.saveOrUpdate
+		log.Default().Printf("incoming update for %s", v.Name)
+
+		if t, err := tp.Store.GetTaskByName(v.Name); err != nil {
+			log.Default().Printf("update old status %s new %s", t.Status, v.Status)
+		}
+		tp.Store.SaveOrUpdateTask(v)
 	}
 }

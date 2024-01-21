@@ -8,3 +8,5 @@ build:
 	go build main.go
 docker:
 	docker build -t vzlobins/hoa-control-app:latest .
+kind: docker
+	kind load docker-image vzlobins/hoa-control-app 
