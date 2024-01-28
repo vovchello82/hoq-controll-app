@@ -10,6 +10,7 @@ import (
 type Store interface {
 	SaveOrUpdateTask(task.Task) error
 
+	GetAllTasks() ([]task.Task, error)
 	GetTaskByName(name string) (task.Task, error)
 	GetTaskByLabel(label string, value string) (task.Task, error)
 	GetTasksByLabels(labels map[string]string) ([]task.Task, error)
@@ -64,4 +65,17 @@ func (s *InMemStore) GetTasksByLabels(labels map[string]string) ([]task.Task, er
 	defer s.lock.RUnlock()
 
 	return []task.Task{}, nil
+}
+
+func (s *InMemStore) GetAllTasks() ([]task.Task, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	tasks := []task.Task{}
+
+	for _, t := range s.storage {
+		tasks = append(tasks, t)
+	}
+
+	return tasks, nil
 }

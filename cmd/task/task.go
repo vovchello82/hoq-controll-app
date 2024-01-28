@@ -1,9 +1,9 @@
 package task
 
 type Task struct {
-	Name   string
-	Status TaskStatus
-	Labels map[string]string
+	Name   string            `json:"name"`
+	Status TaskStatus        `json:"status"`
+	Labels map[string]string `json:"labels"`
 }
 
 type TaskStatus int64
