@@ -19,12 +19,12 @@ import (
 
 type TaskWatcher interface {
 	WatchTasks(labelMap map[string]string, feedchan chan<- task.Task)
-	WatchJobStatus()
+	WatchJobStatus(feedchan chan<- task.Task)
 }
 type TaskWatcherService struct {
 }
 
-func (t *TaskWatcherService) WatchJobStatus() {
+func (t *TaskWatcherService) WatchJobStatus(feedchan chan<- task.Task) {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -48,14 +48,27 @@ func (t *TaskWatcherService) WatchJobStatus() {
 		for _, j := range jobs.Items {
 			timeScheduled := j.Status.LastScheduleTime
 			timeLastSuccess := j.Status.LastSuccessfulTime
+			log.Printf("%s with timeScheduled %s and timeLastSuccess %s", j.Name, timeScheduled, timeLastSuccess)
 			if timeScheduled != nil &&
 				timeLastSuccess != nil &&
 				timeScheduled.Time.Before(timeLastSuccess.Time) {
-				log.Printf("Job %s with was successeful", j.Name)
+				log.Printf("%s job is done", j.Name)
+				feedchan <- task.Task{
+					Name:   j.Name,
+					Labels: j.Labels,
+					Status: task.DONE,
+				}
 			} else {
-				log.Printf("Job %s not yet successeful", j.Name)
+				log.Printf("%s job stil open", j.Name)
+				feedchan <- task.Task{
+					Name:   j.Name,
+					Labels: j.Labels,
+					Status: task.OPEN,
+				}
 			}
 		}
+
+		// this seems to be sufficient -> delete pod warching and move the persistence logic inside of this method
 
 		time.Sleep(20 * time.Second)
 	}
@@ -94,7 +107,7 @@ func (t *TaskWatcherService) WatchTasks(labelMap map[string]string, feedchan cha
 			feedchan <- task.Task{
 				Name:   item.Name,
 				Labels: item.Labels,
-				Status: "STARTED",
+				Status: task.UNDEFINED,
 			}
 		case watch.Bookmark:
 		case watch.Error:
@@ -106,11 +119,10 @@ func (t *TaskWatcherService) WatchTasks(labelMap map[string]string, feedchan cha
 			feedchan <- task.Task{
 				Name:   item.Name,
 				Labels: item.Labels,
-				Status: "OPEN",
+				Status: task.OPEN,
 			}
 		}
 	}
-
 }
 
 type TaskPopulatorService struct {
@@ -129,15 +141,12 @@ func (tp *TaskPopulatorService) StartWatching() {
 	taskUpdatesChan := make(chan task.Task)
 	labels := make(map[string]string)
 
-	labels["app"] = "task-open"
-	labels["type"] = "test"
+	labels["type"] = "task"
 
-	go tp.TaskWatcher.WatchTasks(labels, taskUpdatesChan)
-	go tp.TaskWatcher.WatchJobStatus()
+	//go tp.TaskWatcher.WatchTasks(labels, taskUpdatesChan)
+	go tp.TaskWatcher.WatchJobStatus(taskUpdatesChan)
 
 	for v := range taskUpdatesChan {
-		log.Default().Printf("incoming update for %s", v.Name)
-
 		if t, err := tp.Store.GetTaskByName(v.Name); err != nil {
 			log.Default().Printf("update old status %s new %s", t.Status, v.Status)
 		}

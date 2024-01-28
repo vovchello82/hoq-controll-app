@@ -4,6 +4,7 @@ import (
 	"errors"
 	"hoa-control-app/cmd/task"
 	"log"
+	"sync"
 )
 
 type Store interface {
@@ -15,22 +16,30 @@ type Store interface {
 }
 
 type InMemStore struct {
+	lock    sync.RWMutex
 	storage map[string]task.Task
 }
 
 func NewInMemStorage() *InMemStore {
 	return &InMemStore{
+		lock:    sync.RWMutex{},
 		storage: make(map[string]task.Task),
 	}
 }
 
 func (s *InMemStore) SaveOrUpdateTask(task task.Task) error {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
 	log.Default().Printf("save or update task with the name %s", task.Name)
 	s.storage[task.Name] = task
 	return nil
 }
 
 func (s *InMemStore) GetTaskByLabel(label string, value string) (task.Task, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	for _, task := range s.storage {
 		if taskLabel, found := task.Labels[label]; found && taskLabel == value {
 			return task, nil
@@ -40,6 +49,9 @@ func (s *InMemStore) GetTaskByLabel(label string, value string) (task.Task, erro
 }
 
 func (s *InMemStore) GetTaskByName(name string) (task.Task, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	log.Default().Printf("looking for %s in %s", name, s.storage)
 	if task, found := s.storage[name]; found {
 		return task, nil
@@ -48,5 +60,8 @@ func (s *InMemStore) GetTaskByName(name string) (task.Task, error) {
 }
 
 func (s *InMemStore) GetTasksByLabels(labels map[string]string) ([]task.Task, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
 	return []task.Task{}, nil
 }
