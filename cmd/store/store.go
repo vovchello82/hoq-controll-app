@@ -14,6 +14,8 @@ type Store interface {
 	GetTaskByName(name string) (task.Task, error)
 	GetTaskByLabel(label string, value string) (task.Task, error)
 	GetTasksByLabels(labels map[string]string) ([]task.Task, error)
+
+	GetNumOfSolvedTasks() (int, error)
 }
 
 type InMemStore struct {
@@ -47,6 +49,19 @@ func (s *InMemStore) GetTaskByLabel(label string, value string) (task.Task, erro
 		}
 	}
 	return task.Task{}, errors.New("task not found")
+}
+
+func (s *InMemStore) GetNumOfSolvedTasks() (int, error) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+	num := 0
+	for _, task := range s.storage {
+		if task.Status == 2 {
+			num++
+		}
+	}
+
+	return num, nil
 }
 
 func (s *InMemStore) GetTaskByName(name string) (task.Task, error) {

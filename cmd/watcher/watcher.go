@@ -19,12 +19,12 @@ import (
 
 type TaskWatcher interface {
 	WatchTasks(labelMap map[string]string, feedchan chan<- task.Task)
-	WatchJobStatus(feedchan chan<- task.Task)
+	WatchJobStatus(labelsMap map[string]string, feedchan chan<- task.Task)
 }
 type TaskWatcherService struct {
 }
 
-func (t *TaskWatcherService) WatchJobStatus(feedchan chan<- task.Task) {
+func (t *TaskWatcherService) WatchJobStatus(labelsMap map[string]string, feedchan chan<- task.Task) {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
@@ -36,8 +36,15 @@ func (t *TaskWatcherService) WatchJobStatus(feedchan chan<- task.Task) {
 		panic(err.Error())
 	}
 
+	labelSelector := labels.FormatLabels(labelsMap)
+
+	log.Default().Printf("start watching pods with labels: %s", labelSelector)
+	timeOut := int64(60)
 	for {
-		jobs, err := clientset.BatchV1().CronJobs("default").List(context.TODO(), metav1.ListOptions{})
+		jobs, err := clientset.BatchV1().CronJobs("default").List(context.TODO(), metav1.ListOptions{
+			TimeoutSeconds: &timeOut,
+			LabelSelector:  labelSelector,
+		})
 		if err != nil {
 			panic(err.Error())
 		}
@@ -141,10 +148,10 @@ func (tp *TaskPopulatorService) StartWatching() {
 	taskUpdatesChan := make(chan task.Task)
 	labels := make(map[string]string)
 
-	labels["type"] = "task"
+	labels["type"] = "check"
 
 	//go tp.TaskWatcher.WatchTasks(labels, taskUpdatesChan)
-	go tp.TaskWatcher.WatchJobStatus(taskUpdatesChan)
+	go tp.TaskWatcher.WatchJobStatus(labels, taskUpdatesChan)
 
 	for v := range taskUpdatesChan {
 		if t, err := tp.Store.GetTaskByName(v.Name); err != nil {
