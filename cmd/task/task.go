@@ -1,9 +1,13 @@
 package task
 
+import "time"
+
 type Task struct {
-	Name   string            `json:"name"`
-	Status TaskStatus        `json:"status"`
-	Labels map[string]string `json:"labels"`
+	Name          string            `json:"name"`
+	Status        TaskStatus        `json:"status"`
+	Labels        map[string]string `json:"labels"`
+	TimeLastCheck time.Time         `json:"timeLastCheck"`
+	References    string            `json:"references"`
 }
 
 type TaskStatus int64
@@ -23,4 +27,10 @@ func (ts TaskStatus) String() string {
 	}
 
 	return "UNDEFINED"
+}
+
+type TaskImpl struct {
+	Name    string            `json:"name"`
+	Labels  map[string]string `json:"labels"`
+	ImageID string            `json:"imageID"`
 }

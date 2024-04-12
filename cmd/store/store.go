@@ -30,12 +30,25 @@ func NewInMemStorage() *InMemStore {
 	}
 }
 
-func (s *InMemStore) SaveOrUpdateTask(task task.Task) error {
+func (s *InMemStore) SaveOrUpdateTask(taskUpdate task.Task) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	log.Default().Printf("save or update task with the name %s", task.Name)
-	s.storage[task.Name] = task
+	if stored, found := s.storage[taskUpdate.Name]; found {
+		if len(taskUpdate.References) == 0 {
+			taskUpdate.References = stored.References
+		}
+		if taskUpdate.TimeLastCheck.IsZero() {
+			taskUpdate.TimeLastCheck = stored.TimeLastCheck
+		}
+		if taskUpdate.Status == task.UNDEFINED {
+			taskUpdate.Status = stored.Status
+		}
+	}
+
+	log.Default().Printf("save or update task %+v", taskUpdate)
+	s.storage[taskUpdate.Name] = taskUpdate
+
 	return nil
 }
 
@@ -55,8 +68,8 @@ func (s *InMemStore) GetNumOfSolvedTasks() (int, error) {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 	num := 0
-	for _, task := range s.storage {
-		if task.Status == 2 {
+	for _, stored := range s.storage {
+		if stored.Status == task.DONE {
 			num++
 		}
 	}

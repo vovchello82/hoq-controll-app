@@ -16,7 +16,8 @@ func main() {
 	log.Println("starting the control app for house of apps")
 	var store = store.NewInMemStorage()
 	watcher := watcher.NewTaskPopulator(store, &watcher.TaskWatcherService{})
-	go watcher.StartWatching()
+	go watcher.StartWatchingChecks()
+	go watcher.StartWatchingImpls()
 
 	e := echo.New()
 
@@ -31,7 +32,7 @@ func main() {
 
 	taskGauge := prometheus.NewGauge(
 		prometheus.GaugeOpts{
-			Name: "solvedTasks",
+			Name: "hoa_solved_tasks",
 		},
 	)
 
