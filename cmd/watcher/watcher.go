@@ -42,7 +42,7 @@ func (t *TaskWatcherService) WatchJobStatus(labelsMap map[string]string, feedcha
 
 	labelSelector := labels.FormatLabels(labelsMap)
 
-	log.Default().Printf("start watching pods with labels: %s", labelSelector)
+	log.Default().Printf("start watching cronjobs with labels: %s in the namespace %s", labelSelector, K8S_NAMESPACE)
 	timeOut := int64(60)
 	for {
 		jobs, err := clientset.BatchV1().CronJobs(K8S_NAMESPACE).List(context.TODO(), metav1.ListOptions{
@@ -53,12 +53,15 @@ func (t *TaskWatcherService) WatchJobStatus(labelsMap map[string]string, feedcha
 			panic(err.Error())
 		}
 		if jobs == nil {
+			log.Default().Println("No job found skip")
 			continue
 		}
+		log.Default().Printf("jobs found %d", len(jobs.Items))
 
 		for _, j := range jobs.Items {
 			//skip if job is currently running
 			if len(j.Status.Active) > 0 {
+				log.Default().Printf("skip job %s as still active %d", j.Name, len(j.Status.Active))
 				continue
 			}
 
@@ -93,7 +96,7 @@ func (t *TaskWatcherService) WatchJobStatus(labelsMap map[string]string, feedcha
 
 		// this seems to be sufficient -> delete pod watching and move the persistence logic inside of this method
 
-		time.Sleep(35 * time.Second)
+		time.Sleep(9 * time.Second)
 	}
 }
 func (t *TaskWatcherService) WatchTasks(labelMap map[string]string, feedchan chan<- task.TaskImpl) {
@@ -127,7 +130,6 @@ func (t *TaskWatcherService) WatchTasks(labelMap map[string]string, feedchan cha
 
 	for event := range watcher.ResultChan() {
 		item := event.Object.(*corev1.Pod)
-
 		switch event.Type {
 		case watch.Modified:
 			log.Default().Printf("new Modified event pod %s", item.Name)
