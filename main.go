@@ -30,7 +30,7 @@ func main() {
 
 	e := echo.New()
 
-	e.GET("/tasks", func(c echo.Context) error {
+	e.GET("/status", func(c echo.Context) error {
 		tasks, err := store.GetAllTasks()
 		if err != nil {
 			return c.String(http.StatusInternalServerError, err.Error())
