@@ -3,11 +3,11 @@ package task
 import "time"
 
 type Task struct {
-	Name          string            `json:"name"`
-	Status        TaskStatus        `json:"status"`
-	Labels        map[string]string `json:"labels"`
-	TimeLastCheck time.Time         `json:"timeLastCheck"`
-	References    string            `json:"references"`
+	Name          string     `json:"name"`
+	Status        TaskStatus `json:"status"`
+	Labels        map[string]string
+	TimeLastCheck time.Time `json:"timeLastCheck"`
+	References    string    `json:"references"`
 }
 
 type TaskStatus int64
@@ -30,7 +30,7 @@ func (ts TaskStatus) String() string {
 }
 
 type TaskImpl struct {
-	Name    string            `json:"name"`
-	Labels  map[string]string `json:"labels"`
-	ImageID string            `json:"imageID"`
+	Name    string `json:"name"`
+	Labels  map[string]string
+	ImageID string `json:"imageID"`
 }
