@@ -105,7 +105,7 @@ func getPodLogsBylabel(labelsMap map[string]string) string {
 	})
 
 	if err != nil {
-		return fmt.Sprintf("an error occured: %s", err.Error())
+		return fmt.Sprintf("an error occured when selecting pods: %s", err.Error())
 	}
 
 	log.Default().Printf("pods found %d", len(pods.Items))
@@ -117,7 +117,7 @@ func getPodLogsBylabel(labelsMap map[string]string) string {
 			logReq := clientset.CoreV1().Pods(watcher.K8S_NAMESPACE).GetLogs(p.Name, &v1.PodLogOptions{})
 			podLogs, err := logReq.Stream(context.TODO())
 			if err != nil {
-				logString = fmt.Sprintf("an error occured: %s", err.Error())
+				logString = fmt.Sprintf("an error occured when getting logs: %s", err.Error())
 				return
 			}
 			defer podLogs.Close()

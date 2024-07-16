@@ -49,6 +49,7 @@ func (t *TaskWatcherService) WatchJobStatus(labelsMap map[string]string, feedcha
 			TimeoutSeconds: &timeOut,
 			LabelSelector:  labelSelector,
 		})
+
 		if err != nil {
 			panic(err.Error())
 		}
@@ -64,9 +65,9 @@ func (t *TaskWatcherService) WatchJobStatus(labelsMap map[string]string, feedcha
 				log.Default().Printf("skip job %s as still active %d", j.Name, len(j.Status.Active))
 				continue
 			}
-
 			timeScheduled := j.Status.LastScheduleTime
 			timeLastSuccess := j.Status.LastSuccessfulTime
+
 			log.Printf("%s with timeScheduled %s and timeLastSuccess %s", j.Name, timeScheduled, timeLastSuccess)
 
 			if timeScheduled != nil &&
