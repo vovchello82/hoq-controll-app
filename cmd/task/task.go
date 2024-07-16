@@ -3,11 +3,11 @@ package task
 import "time"
 
 type Task struct {
-	Name          string     `json:"name"`
-	Status        TaskStatus `json:"status"`
-	Labels        map[string]string
-	TimeLastCheck time.Time `json:"timeLastCheck"`
-	References    string    `json:"references"`
+	Name          string            `json:"name"`
+	Status        TaskStatus        `json:"status"`
+	Labels        map[string]string `json:"-"`
+	TimeLastCheck time.Time         `json:"timeLastCheck"`
+	References    string            `json:"references"`
 }
 
 type TaskStatus int64
